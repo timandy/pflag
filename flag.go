@@ -16,7 +16,7 @@ pflag is a drop-in replacement of Go's native flag package. If you import
 pflag under the name "flag" then all code should continue to function
 with no changes.
 
-	import flag "github.com/spf13/pflag"
+	import flag "github.com/timandy/pflag"
 
 There is one exception to this: if you directly instantiate the Flag struct
 there is one more field "Shorthand" that you will need to set.
@@ -495,7 +495,7 @@ func (f *FlagSet) Set(name, value string) error {
 }
 
 // SetAnnotation allows one to set arbitrary annotations on a flag in the FlagSet.
-// This is sometimes used by spf13/cobra programs which want to generate additional
+// This is sometimes used by timandy/cobra programs which want to generate additional
 // bash completion information.
 func (f *FlagSet) SetAnnotation(name, key string, values []string) error {
 	normalName := f.normalizeFlagName(name)
