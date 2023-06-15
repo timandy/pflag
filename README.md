@@ -117,7 +117,7 @@ Shorthand letters can be used with single dashes on the command line.
 Boolean shorthand flags can be combined with other shorthand flags.
 
 The default set of command-line flags is controlled by
-top-level functions.  The FlagSet type allows one to define
+top-level functions. The FlagSet type allows one to define
 independent sets of flags, such as to implement subcommands
 in a command-line interface. The methods of FlagSet are
 analogous to the top-level functions for the command-line
@@ -138,7 +138,7 @@ flag.Lookup("flagname").NoOptDefVal = "4321"
 Would result in something like
 
 | Parsed Arguments | Resulting Value |
-| -------------    | -------------   |
+|------------------|-----------------|
 | --flagname=1357  | ip=1357         |
 | --flagname       | ip=4321         |
 | [nothing]        | ip=1234         |
@@ -186,7 +186,9 @@ Duration flags accept any input valid for time.ParseDuration.
 
 ## Mutating or "Normalizing" Flag names
 
-It is possible to set a custom flag name 'normalization function.' It allows flag names to be mutated both when created in the code and when used on the command line to some 'normalized' form. The 'normalized' form is used for comparison. Two examples of using the custom normalization func follow.
+It is possible to set a custom flag name 'normalization function.' It allows flag names to be mutated both when created
+in the code and when used on the command line to some 'normalized' form. The 'normalized' form is used for comparison.
+Two examples of using the custom normalization func follow.
 
 **Example #1**: You want -, _, and . in flags to compare the same. aka --my-flag == --my_flag == --my.flag
 
@@ -219,37 +221,52 @@ myFlagSet.SetNormalizeFunc(aliasNormalizeFunc)
 ```
 
 ## Deprecating a flag or its shorthand
-It is possible to deprecate a flag, or just its shorthand. Deprecating a flag/shorthand hides it from help text and prints a usage message when the deprecated flag/shorthand is used.
 
-**Example #1**: You want to deprecate a flag named "badflag" as well as inform the users what flag they should use instead.
+It is possible to deprecate a flag, or just its shorthand. Deprecating a flag/shorthand hides it from help text and
+prints a usage message when the deprecated flag/shorthand is used.
+
+**Example #1**: You want to deprecate a flag named "badflag" as well as inform the users what flag they should use
+instead.
+
 ```go
 // deprecate a flag by specifying its name and a usage message
 flags.MarkDeprecated("badflag", "please use --good-flag instead")
 ```
-This hides "badflag" from help text, and prints `Flag --badflag has been deprecated, please use --good-flag instead` when "badflag" is used.
+
+This hides "badflag" from help text, and prints `Flag --badflag has been deprecated, please use --good-flag instead`
+when "badflag" is used.
 
 **Example #2**: You want to keep a flag name "noshorthandflag" but deprecate its shortname "n".
+
 ```go
 // deprecate a flag shorthand by specifying its flag name and a usage message
 flags.MarkShorthandDeprecated("noshorthandflag", "please use --noshorthandflag only")
 ```
-This hides the shortname "n" from help text, and prints `Flag shorthand -n has been deprecated, please use --noshorthandflag only` when the shorthand "n" is used.
+
+This hides the shortname "n" from help text, and
+prints `Flag shorthand -n has been deprecated, please use --noshorthandflag only` when the shorthand "n" is used.
 
 Note that usage message is essential here, and it should not be empty.
 
 ## Hidden flags
-It is possible to mark a flag as hidden, meaning it will still function as normal, however will not show up in usage/help text.
 
-**Example**: You have a flag named "secretFlag" that you need for internal use only and don't want it showing up in help text, or for its usage text to be available.
+It is possible to mark a flag as hidden, meaning it will still function as normal, however will not show up in
+usage/help text.
+
+**Example**: You have a flag named "secretFlag" that you need for internal use only and don't want it showing up in help
+text, or for its usage text to be available.
+
 ```go
 // hide a flag by specifying its name
 flags.MarkHidden("secretFlag")
 ```
 
 ## Disable sorting of flags
+
 `pflag` allows you to disable sorting of flags for help and usage message.
 
 **Example**:
+
 ```go
 flags.BoolP("verbose", "v", false, "verbose output")
 flags.String("coolflag", "yeaah", "it's really cool flag")
@@ -257,19 +274,23 @@ flags.Int("usefulflag", 777, "sometimes it's very useful")
 flags.SortFlags = false
 flags.PrintDefaults()
 ```
+
 **Output**:
+
 ```
   -v, --verbose           verbose output
       --coolflag string   it's really cool flag (default "yeaah")
       --usefulflag int    sometimes it's very useful (default 777)
 ```
 
-
 ## Supporting Go flags when using pflag
-In order to support flags defined using Go's `flag` package, they must be added to the `pflag` flagset. This is usually necessary
+
+In order to support flags defined using Go's `flag` package, they must be added to the `pflag` flagset. This is usually
+necessary
 to support flags defined by third-party dependencies (e.g. `golang/glog`).
 
 **Example**: You want to add the Go flags to the `CommandLine` flagset
+
 ```go
 import (
 	goflag "flag"
@@ -293,4 +314,5 @@ running `godoc -http=:6060` and browsing to
 installation.
 
 [2]: http://localhost:6060/pkg/github.com/timandy/pflag
+
 [3]: http://godoc.org/github.com/timandy/pflag
