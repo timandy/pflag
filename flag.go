@@ -1050,11 +1050,12 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 		// When in multiple-chars-shorhand-enabled mode, only "-ff=arg" or "-ff arg" is allowed.
 		eqPos := strings.Index(shorthands, "=")
 		if eqPos > 0 {
-			shorthands = shorthands[0:eqPos]
-			eqVal = shorthands[eqPos+1 : 0]
+			c = shorthands[0:eqPos]
+			eqVal = shorthands[eqPos+1:]
+		} else {
+			c = shorthands
 		}
 		outShorts = ""
-		c = shorthands
 	} else {
 		outShorts = shorthands[1:]
 		c = string(shorthands[0])
