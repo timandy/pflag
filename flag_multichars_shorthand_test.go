@@ -100,6 +100,20 @@ func TestShorthandLookupMultiChars(t *testing.T) {
 	if !f.Parsed() {
 		t.Error("f.Parse() = false after Parse")
 	}
+	boolaFlag := f.ShorthandLookup("a")
+	if boolaFlag == nil {
+		t.Fatal("boola flag should not be nil")
+	}
+	if boolaFlag.Value.String() != "true" {
+		t.Error("boola flag should be true, is ", boolaFlag.Value.String())
+	}
+	stringzFlag := f.ShorthandLookup("z")
+	if stringzFlag == nil {
+		t.Fatal("stringz flag should not be nil")
+	}
+	if stringzFlag.Value.String() != "something" {
+		t.Error("stringz flag should be `something`, is ", stringzFlag.Value.String())
+	}
 	stringaaFlag := f.ShorthandLookup("aa")
 	if stringaaFlag == nil {
 		t.Fatal("stringaa flag should not be nil")

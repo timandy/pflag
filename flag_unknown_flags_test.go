@@ -17,6 +17,9 @@ func TestUnknownFlagsEmpty(t *testing.T) {
 
 	require.NoError(t, f.Parse([]string{"--known"}))
 	assert.Empty(t, f.UnknownFlags())
+	known, err := f.GetBool("known")
+	require.NoError(t, err)
+	assert.True(t, known)
 }
 
 func TestUnknownFlagsLong(t *testing.T) {
@@ -25,6 +28,7 @@ func TestUnknownFlagsLong(t *testing.T) {
 		args        []string
 		wantUnknown []string
 		wantArgs    []string
+		wantKnown   bool
 	}{
 		{
 			name:        "long with equals",
@@ -40,6 +44,7 @@ func TestUnknownFlagsLong(t *testing.T) {
 			name:        "long followed by flag",
 			args:        []string{"--foo", "--known"},
 			wantUnknown: []string{"--foo"},
+			wantKnown:   true,
 		},
 		{
 			name:        "long at end",
@@ -66,6 +71,9 @@ func TestUnknownFlagsLong(t *testing.T) {
 			if tt.wantArgs != nil {
 				assert.Equal(t, tt.wantArgs, f.Args())
 			}
+			known, err := f.GetBool("known")
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantKnown, known)
 		})
 	}
 }
@@ -76,6 +84,7 @@ func TestUnknownFlagsShort(t *testing.T) {
 		args        []string
 		wantUnknown []string
 		wantArgs    []string
+		wantKnown   bool
 	}{
 		{
 			name:        "short with equals",
@@ -96,16 +105,19 @@ func TestUnknownFlagsShort(t *testing.T) {
 			name:        "short followed by flag",
 			args:        []string{"-f", "--known"},
 			wantUnknown: []string{"-f"},
+			wantKnown:   true,
 		},
 		{
 			name:        "partial shorthand group",
 			args:        []string{"-af"},
 			wantUnknown: []string{"-f"},
+			wantKnown:   true,
 		},
 		{
 			name:        "multiple unknown in group",
 			args:        []string{"-fag"},
 			wantUnknown: []string{"-fg"},
+			wantKnown:   true,
 		},
 	}
 
@@ -121,6 +133,9 @@ func TestUnknownFlagsShort(t *testing.T) {
 			if tt.wantArgs != nil {
 				assert.Equal(t, tt.wantArgs, f.Args())
 			}
+			known, err := f.GetBool("known")
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantKnown, known)
 		})
 	}
 }
@@ -195,6 +210,12 @@ func TestUnknownFlagsEdgeCases(t *testing.T) {
 		require.NoError(t, f.Parse(args))
 		assert.Equal(t, []string{"--unknown1=val", "-x", "--unknown2", "pos"}, f.UnknownFlags())
 		assert.Empty(t, f.Args())
+		verbose, err := f.GetBool("verbose")
+		require.NoError(t, err)
+		assert.True(t, verbose)
+		output, err := f.GetString("output")
+		require.NoError(t, err)
+		assert.Equal(t, "file.txt", output)
 	})
 
 	t.Run("parse resets unknownFlags", func(t *testing.T) {
@@ -247,6 +268,9 @@ func TestUnknownFlagsEdgeCases(t *testing.T) {
 		require.NoError(t, f.Parse([]string{"--known", "arg", "--unknown"}))
 		assert.Equal(t, []string{"arg", "--unknown"}, f.UnknownFlags())
 		assert.Equal(t, []string{"arg", "--unknown"}, f.Args())
+		known, err := f.GetBool("known")
+		require.NoError(t, err)
+		assert.True(t, known)
 	})
 
 	t.Run("interspersed true: positional between flags", func(t *testing.T) {
@@ -258,6 +282,9 @@ func TestUnknownFlagsEdgeCases(t *testing.T) {
 		require.NoError(t, f.Parse([]string{"--known", "pos1", "--unknown", "pos2"}))
 		assert.Equal(t, []string{"pos1", "--unknown", "pos2"}, f.UnknownFlags())
 		assert.Equal(t, []string{"pos1"}, f.Args())
+		known, err := f.GetBool("known")
+		require.NoError(t, err)
+		assert.True(t, known)
 	})
 
 	t.Run("interspersed true: multiple positionals", func(t *testing.T) {
@@ -280,6 +307,9 @@ func TestUnknownFlagsEdgeCases(t *testing.T) {
 		require.NoError(t, f.Parse([]string{"pos1", "--foo=bar", "--output", "out.txt", "pos2"}))
 		assert.Equal(t, []string{"pos1", "--foo=bar", "pos2"}, f.UnknownFlags())
 		assert.Equal(t, []string{"pos1", "pos2"}, f.Args())
+		output, err := f.GetString("output")
+		require.NoError(t, err)
+		assert.Equal(t, "out.txt", output)
 	})
 
 	t.Run("ParseAll collects unknown flags", func(t *testing.T) {
@@ -306,6 +336,9 @@ func TestUnknownFlagsEdgeCases(t *testing.T) {
 
 		require.NoError(t, f.Parse([]string{"--my_flag"}))
 		assert.Empty(t, f.UnknownFlags())
+		myFlag, err := f.GetBool("my-flag")
+		require.NoError(t, err)
+		assert.True(t, myFlag)
 	})
 }
 
