@@ -8,6 +8,11 @@ linters:
         - unconvert
         - unparam
     settings:
+        revive:
+            rules:
+                - name: package-comments
+                  disabled: true # copyright header before package doc triggers false positive
+                - name: exported
         staticcheck:
             # Enable all options, with some exceptions.
             # For defaults, see https://golangci-lint.run/usage/linters/#staticcheck
