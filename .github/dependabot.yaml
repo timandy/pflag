@@ -1,12 +1,20 @@
+# Configuration file of GitHub Dependabot
+
 version: 2
-
 updates:
-  - package-ecosystem: gomod
-    directory: /
-    schedule:
-      interval: daily
 
-  - package-ecosystem: github-actions
-    directory: /
+  # Maintain dependencies for gomod
+  - package-ecosystem: "gomod"
+    directory: "/"
     schedule:
-      interval: daily
+      interval: "daily"
+      time: "08:00"
+      timezone: "Asia/Shanghai"
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "08:00"
+      timezone: "Asia/Shanghai"
