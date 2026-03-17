@@ -1113,6 +1113,7 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 			// we do not want to lose arg in this case
 			if f.AllowMultiCharsShorthand {
 				if len(eqVal) > 0 {
+					f.unknownFlags = append(f.unknownFlags, "-"+shorthands)
 					return
 				}
 				outArgs = f.stripUnknownFlagValue("-"+c, outArgs)

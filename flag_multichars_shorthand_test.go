@@ -3,6 +3,9 @@ package pflag
 import (
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShorthandMultiChars(t *testing.T) {
@@ -121,4 +124,62 @@ func TestShorthandLookupMultiChars(t *testing.T) {
 	if f.ArgsLenAtDash() != 1 {
 		t.Errorf("expected argsLenAtDash %d got %d", f.ArgsLenAtDash(), 1)
 	}
+}
+
+func TestUnknownFlagsMultiCharsShorthand(t *testing.T) {
+	t.Run("unknown with equals", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "aa", "", "a multi-char shorthand")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xx=val", "-aa", "hello"}))
+		assert.Equal(t, []string{"-xx=val"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "hello", alpha)
+	})
+
+	t.Run("unknown with value", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "aa", "", "a multi-char shorthand")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xx", "val", "-aa", "hello"}))
+		assert.Equal(t, []string{"-xx", "val"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "hello", alpha)
+	})
+
+	t.Run("unknown at end", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xx"}))
+		assert.Equal(t, []string{"-xx"}, f.UnknownFlags())
+	})
+
+	t.Run("mixed known and unknown", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.BoolP("verbose", "vv", false, "verbose")
+		f.StringP("output", "oo", "", "output file")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-vv", "-xx=1", "-oo", "out.txt", "-yy", "val"}))
+		assert.Equal(t, []string{"-xx=1", "-yy", "val"}, f.UnknownFlags())
+		verbose, err := f.GetBool("verbose")
+		require.NoError(t, err)
+		assert.True(t, verbose)
+		output, err := f.GetString("output")
+		require.NoError(t, err)
+		assert.Equal(t, "out.txt", output)
+	})
 }
