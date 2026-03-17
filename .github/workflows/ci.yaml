@@ -18,14 +18,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.12", "1.21", "1.22", "1.23", "oldstable", "stable"]
+        go: ["1.20", "1.21", "1.22", "1.23", "oldstable", "stable"]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Checkout scm
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
 
@@ -40,15 +40,14 @@ jobs:
     timeout-minutes: 20 # guardrails timeout
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Checkout scm
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@v6
         with:
-          go-version: "stable"
+          go-version-file: go.mod
+          cache: false
 
       - name: Lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
-        with:
-          version: v2.7
+        uses: golangci/golangci-lint-action@v9
