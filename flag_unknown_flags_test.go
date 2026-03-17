@@ -105,7 +105,7 @@ func TestUnknownFlagsShort(t *testing.T) {
 		{
 			name:        "multiple unknown in group",
 			args:        []string{"-fag"},
-			wantUnknown: []string{"-f", "-g"},
+			wantUnknown: []string{"-fg"},
 		},
 	}
 
@@ -306,5 +306,72 @@ func TestUnknownFlagsEdgeCases(t *testing.T) {
 
 		require.NoError(t, f.Parse([]string{"--my_flag"}))
 		assert.Empty(t, f.UnknownFlags())
+	})
+}
+
+func TestUnknownFlagsCombinedShortGroup(t *testing.T) {
+	t.Run("known bool in combined group", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.BoolP("alpha", "a", false, "a bool flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xaf", "value", "-x", "v1", "-a", "v2", "-f", "c3"}))
+		assert.Equal(t, []string{"-xf", "value", "-x", "v1", "v2", "-f", "c3"}, f.UnknownFlags())
+		alpha, err := f.GetBool("alpha")
+		require.NoError(t, err)
+		assert.True(t, alpha)
+	})
+
+	t.Run("known non-bool in combined group", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "a", "", "a string flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xf", "value", "-x", "v1", "-a", "v2", "-f", "c3"}))
+		assert.Equal(t, []string{"-xf", "value", "-x", "v1", "-f", "c3"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "v2", alpha)
+	})
+
+	t.Run("known non-bool consumes remaining shorthands as value", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "a", "", "a string flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xaf", "value", "-xd", "v1", "-f", "c3"}))
+		assert.Equal(t, []string{"-x", "value", "-xd", "v1", "-f", "c3"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "f", alpha)
+	})
+
+	t.Run("known non-bool takes flag-like arg as value", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "a", "", "a string flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xf", "value", "-a", "-xd", "v1", "-f", "c3"}))
+		assert.Equal(t, []string{"-xf", "value", "v1", "-f", "c3"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "-xd", alpha)
+	})
+
+	t.Run("known non-bool takes next positional as value", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "a", "", "a string flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xf", "value", "-a", "xxx", "-xd", "v1", "-f", "c3"}))
+		assert.Equal(t, []string{"-xf", "value", "-xd", "v1", "-f", "c3"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "xxx", alpha)
 	})
 }

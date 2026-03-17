@@ -1074,7 +1074,7 @@ func (f *FlagSet) parseLongArg(s string, args []string, fn parseFunc) (a []strin
 	return
 }
 
-func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parseFunc) (outShorts string, outArgs []string, err error) {
+func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parseFunc) (outShorts string, outArgs []string, unknownChar string, err error) {
 	outArgs = args
 
 	if isGotestShorthandFlag(shorthands) {
@@ -1115,15 +1115,17 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 				if len(eqVal) > 0 {
 					return
 				}
-			} else {
-				if len(shorthands) > 2 && shorthands[1] == '=' {
-					f.unknownFlags = append(f.unknownFlags, "-"+shorthands)
-					outShorts = ""
-					return
-				}
+				outArgs = f.stripUnknownFlagValue("-"+c, outArgs)
+				return
 			}
-
-			outArgs = f.stripUnknownFlagValue("-"+c, outArgs)
+			// Single char mode: return unknownChar for accumulation by parseShortArg
+			if len(shorthands) > 2 && shorthands[1] == '=' {
+				// = form: return full string (e.g. "f=val") for direct addition
+				unknownChar = shorthands
+				outShorts = ""
+				return
+			}
+			unknownChar = c
 			return
 		default:
 			err = f.fail(&NotExistError{
@@ -1197,13 +1199,33 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 func (f *FlagSet) parseShortArg(s string, args []string, fn parseFunc) (a []string, err error) {
 	a = args
 	shorthands := s[1:]
+	unknownChars := ""
 
 	// "shorthands" can be a series of shorthand letters of flags (e.g. "-vvv").
 	for len(shorthands) > 0 {
-		shorthands, a, err = f.parseSingleShortArg(shorthands, args, fn)
+		var unknownChar string
+		shorthands, a, unknownChar, err = f.parseSingleShortArg(shorthands, a, fn)
 		if err != nil {
+			if unknownChars != "" {
+				f.unknownFlags = append(f.unknownFlags, "-"+unknownChars)
+			}
 			return
 		}
+		if len(unknownChar) == 1 {
+			// Single unknown char: accumulate to combine as one entry
+			unknownChars += unknownChar
+		} else if len(unknownChar) > 1 {
+			// = form (e.g. "f=val"): flush accumulated chars first, then add directly
+			if unknownChars != "" {
+				a = f.stripUnknownFlagValue("-"+unknownChars, a)
+				unknownChars = ""
+			}
+			f.unknownFlags = append(f.unknownFlags, "-"+unknownChar)
+		}
+	}
+
+	if unknownChars != "" {
+		a = f.stripUnknownFlagValue("-"+unknownChars, a)
 	}
 
 	return
