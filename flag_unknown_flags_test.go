@@ -407,4 +407,47 @@ func TestUnknownFlagsCombinedShortGroup(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "xxx", alpha)
 	})
+
+	t.Run("equals form flushes accumulated unknowns", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.BoolP("alpha", "a", false, "a bool flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xf=val", "pos"}))
+		assert.Equal(t, []string{"-x", "pos", "-f=val"}, f.UnknownFlags())
+	})
+
+	t.Run("help in group flushes accumulated unknowns", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.SetOutput(ioutil.Discard)
+		f.Usage = func() {}
+
+		err := f.Parse([]string{"-xh"})
+		assert.ErrorIs(t, err, ErrHelp)
+		assert.Equal(t, []string{"-x"}, f.UnknownFlags())
+	})
+
+	t.Run("all unknown group without value", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-fg"}))
+		assert.Equal(t, []string{"-fg"}, f.UnknownFlags())
+	})
+
+	t.Run("known non-bool as first char consumes rest", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "a", "", "a string flag")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-axf", "pos"}))
+		assert.Equal(t, []string{"pos"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "xf", alpha)
+	})
 }

@@ -196,4 +196,52 @@ func TestUnknownFlagsMultiCharsShorthand(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "out.txt", output)
 	})
+
+	t.Run("unknown followed by known flag no strip", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "aa", "", "a multi-char shorthand")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xx", "-aa", "hello"}))
+		assert.Equal(t, []string{"-xx"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "hello", alpha)
+	})
+
+	t.Run("multiple unknowns in sequence", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-xx", "val1", "-yy", "val2"}))
+		assert.Equal(t, []string{"-xx", "val1", "-yy", "val2"}, f.UnknownFlags())
+	})
+
+	t.Run("unknown superset of known shorthand", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.StringP("alpha", "af", "", "a multi-char shorthand")
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-afx", "value"}))
+		assert.Equal(t, []string{"-afx", "value"}, f.UnknownFlags())
+		alpha, err := f.GetString("alpha")
+		require.NoError(t, err)
+		assert.Equal(t, "", alpha)
+	})
+
+	t.Run("go test flag in multi-char mode", func(t *testing.T) {
+		f := NewFlagSet("test", ContinueOnError)
+		f.AllowMultiCharsShorthand = true
+		f.ParseErrorsAllowlist.UnknownFlags = true
+		f.SetOutput(ioutil.Discard)
+
+		require.NoError(t, f.Parse([]string{"-test.v"}))
+		assert.Equal(t, []string{"-test.v"}, f.UnknownFlags())
+	})
 }
