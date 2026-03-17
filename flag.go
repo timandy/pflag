@@ -184,6 +184,7 @@ type FlagSet struct {
 	sortedFormal      []*Flag
 	shorthands        map[string]*Flag
 	args              []string // arguments after flags
+	unknownFlags      []string // unknown flags encountered during parsing
 	argsLenAtDash     int      // len(args) when a '--' was located when parsing, or -1 if no --
 	errorHandling     ErrorHandling
 	output            io.Writer // nil means stderr; use Output() accessor
@@ -857,6 +858,13 @@ func (f *FlagSet) Args() []string { return f.args }
 // Args returns the non-flag command-line arguments.
 func Args() []string { return CommandLine.args }
 
+// UnknownFlags returns the unknown flags encountered during parsing.
+// It should only be called after Parse() returns.
+func (f *FlagSet) UnknownFlags() []string { return f.unknownFlags }
+
+// UnknownFlags returns the unknown command-line flags encountered during parsing.
+func UnknownFlags() []string { return CommandLine.unknownFlags }
+
 // Var defines a flag with the specified name and usage string. The type and
 // value of the flag are represented by the first argument, of type Value, which
 // typically holds a user-defined implementation of Value. For instance, the
@@ -979,10 +987,13 @@ func (f *FlagSet) usage() {
 	}
 }
 
-// --unknown (args will be empty)
-// --unknown --next-flag ... (args will be --next-flag ...)
-// --unknown arg ... (args will be arg ...)
-func stripUnknownFlagValue(args []string) []string {
+// stripUnknownFlagValue records an unknown flag and strips its value argument
+// if present. The flag parameter is the reconstructed flag string (e.g. "--foo"
+// or "-f"). If the next argument in args does not start with '-', it is treated
+// as the flag's value: recorded into unknownFlags and stripped from args.
+func (f *FlagSet) stripUnknownFlagValue(flag string, args []string) []string {
+	f.unknownFlags = append(f.unknownFlags, flag)
+
 	if len(args) == 0 {
 		// --unknown
 		return args
@@ -995,6 +1006,7 @@ func stripUnknownFlagValue(args []string) []string {
 	}
 
 	// --unknown arg ... (args will be arg ...)
+	f.unknownFlags = append(f.unknownFlags, first)
 	if len(args) > 1 {
 		return args[1:]
 	}
@@ -1024,10 +1036,11 @@ func (f *FlagSet) parseLongArg(s string, args []string, fn parseFunc) (a []strin
 			// --unknown=unknownval arg ...
 			// we do not want to lose arg in this case
 			if len(split) >= 2 {
+				f.unknownFlags = append(f.unknownFlags, s)
 				return a, nil
 			}
 
-			return stripUnknownFlagValue(a), nil
+			return f.stripUnknownFlagValue("--"+name, a), nil
 		default:
 			err = f.fail(&NotExistError{name: name, messageType: flagUnknownFlagMessage})
 			return
@@ -1065,6 +1078,7 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 	outArgs = args
 
 	if isGotestShorthandFlag(shorthands) {
+		f.unknownFlags = append(f.unknownFlags, "-"+shorthands)
 		return
 	}
 
@@ -1103,12 +1117,13 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 				}
 			} else {
 				if len(shorthands) > 2 && shorthands[1] == '=' {
+					f.unknownFlags = append(f.unknownFlags, "-"+shorthands)
 					outShorts = ""
 					return
 				}
 			}
 
-			outArgs = stripUnknownFlagValue(outArgs)
+			outArgs = f.stripUnknownFlagValue("-"+c, outArgs)
 			return
 		default:
 			err = f.fail(&NotExistError{
@@ -1201,10 +1216,13 @@ func (f *FlagSet) parseArgs(args []string, fn parseFunc) (err error) {
 		if len(s) == 0 || s[0] != '-' || len(s) == 1 {
 			if !f.interspersed {
 				f.args = append(f.args, s)
+				f.unknownFlags = append(f.unknownFlags, s)
 				f.args = append(f.args, args...)
+				f.unknownFlags = append(f.unknownFlags, args...)
 				return nil
 			}
 			f.args = append(f.args, s)
+			f.unknownFlags = append(f.unknownFlags, s)
 			continue
 		}
 
@@ -1212,6 +1230,8 @@ func (f *FlagSet) parseArgs(args []string, fn parseFunc) (err error) {
 			if len(s) == 2 { // "--" terminates the flags
 				f.argsLenAtDash = len(f.args)
 				f.args = append(f.args, args...)
+				f.unknownFlags = append(f.unknownFlags, s)
+				f.unknownFlags = append(f.unknownFlags, args...)
 				break
 			}
 			args, err = f.parseLongArg(s, args, fn)
@@ -1238,6 +1258,7 @@ func (f *FlagSet) Parse(arguments []string) error {
 	f.parsed = true
 
 	f.args = make([]string, 0, len(arguments))
+	f.unknownFlags = make([]string, 0, len(arguments))
 
 	if len(arguments) == 0 {
 		return nil
@@ -1275,6 +1296,7 @@ type parseFunc func(flag *Flag, value string) error
 func (f *FlagSet) ParseAll(arguments []string, fn func(flag *Flag, value string) error) error {
 	f.parsed = true
 	f.args = make([]string, 0, len(arguments))
+	f.unknownFlags = make([]string, 0, len(arguments))
 
 	err := f.parseArgs(arguments, fn)
 	if err != nil {
